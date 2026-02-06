@@ -8,6 +8,9 @@ import pl.edu.agh.dp.entity.Employee;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * DTO dla encji Employee.
@@ -19,7 +22,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class EmployeeDto {
 
-//    private Long id;
+    private Long id;
     private String firstName;
     private String lastName;
     private String email;
@@ -32,6 +35,9 @@ public class EmployeeDto {
     private String departmentName;
     private Long managerId;
     private String managerName;
+    
+    // === SELF-REFERENCE: Lista podwładnych (dla demonstracji) ===
+    private List<SubordinateInfo> subordinates;
 
     /**
      * Konwertuje encję Employee na DTO.
@@ -42,7 +48,7 @@ public class EmployeeDto {
         }
 
         EmployeeDtoBuilder builder = EmployeeDto.builder()
-//                .id(employee.getId())
+                .id(employee.getId())
                 .firstName(employee.getFirstName())
                 .lastName(employee.getLastName())
                 .email(employee.getEmail())
@@ -52,15 +58,35 @@ public class EmployeeDto {
                 .salary(employee.getSalary())
                 .position(employee.getPosition());
 
-//        if (employee.getDepartment() != null) {
-//            builder.departmentId(employee.getDepartment().getId())
-//                    .departmentName(employee.getDepartment().getName());
-//        }
-//
-//        if (employee.getManager() != null) {
-//            builder.managerId(employee.getManager().getId())
-//                    .managerName(employee.getManager().getFirstName() + " " + employee.getManager().getLastName());
-//        }
+        if (employee.getDepartment() != null) {
+            builder.departmentId(employee.getDepartment().getId())
+                   .departmentName(employee.getDepartment().getName());
+        }
+
+        // === SELF-REFERENCE: Informacje o managerze ===
+        try {
+            if (employee.getManager() != null) {
+                builder.managerId(employee.getManager().getId())
+                       .managerName(employee.getManager().getFirstName() + " " + employee.getManager().getLastName());
+            }
+        } catch (Exception e) {
+            System.out.println("Warning: Could not load manager for employee " + employee.getId() + ": " + e.getMessage());
+        }
+
+        // === SELF-REFERENCE: Lista podwładnych ===
+        try {
+            if (employee.getSubordinates() != null && !employee.getSubordinates().isEmpty()) {
+                List<SubordinateInfo> subordinateInfos = employee.getSubordinates().stream()
+                        .map(sub -> new SubordinateInfo(
+                                sub.getId(),
+                                sub.getFirstName() + " " + sub.getLastName(),
+                                sub.getPosition()))
+                        .collect(Collectors.toList());
+                builder.subordinates(subordinateInfos);
+            }
+        } catch (Exception e) {
+            System.out.println("Warning: Could not load subordinates for employee " + employee.getId() + ": " + e.getMessage());
+        }
 
         return builder.build();
     }
@@ -80,5 +106,18 @@ public class EmployeeDto {
         employee.setSalary(this.salary);
         employee.setPosition(this.position);
         return employee;
+    }
+
+    /**
+     * Klasa wewnętrzna do prezentacji podwładnych (SELF-REFERENCE).
+     * Uproszczona wersja Employee do unikania rekurencji.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SubordinateInfo {
+        private Long id;
+        private String fullName;
+        private String position;
     }
 }

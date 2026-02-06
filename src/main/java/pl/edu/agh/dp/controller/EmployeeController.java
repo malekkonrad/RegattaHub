@@ -99,7 +99,7 @@ public class EmployeeController {
     }
 
     @PutMapping("/{employeeId}/manager/{managerId}")
-    @Operation(summary = "Przypisz managera do pracownika", description = "Demonstruje self-reference")
+    @Operation(summary = "Przypisz managera do pracownika", description = "Demonstruje self-reference: ustawia relację @ManyToOne do innego Employee")
     public ApiResponse<EmployeeDto> assignManager(@PathVariable Long employeeId, @PathVariable Long managerId) {
         try {
             return employeeService.assignManager(employeeId, managerId)
@@ -107,6 +107,59 @@ public class EmployeeController {
                     .orElse(ApiResponse.notFound("Employee", employeeId));
         } catch (Exception e) {
             return ApiResponse.error("Failed to assign manager: " + e.getMessage(), 400);
+        }
+    }
+
+    // ==================== SELF-REFERENCE ENDPOINTS ====================
+
+    @GetMapping("/{id}/subordinates")
+    @Operation(summary = "Pobierz podwładnych managera", 
+               description = "Demonstruje @OneToMany self-reference: pobiera listę Employee, których manager = ten Employee")
+    public ApiResponse<List<EmployeeDto>> getSubordinates(@PathVariable Long id) {
+        try {
+            List<EmployeeDto> subordinates = employeeService.getSubordinates(id);
+            return ApiResponse.success(subordinates, "Found " + subordinates.size() + " subordinates");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to fetch subordinates: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/{id}/manager")
+    @Operation(summary = "Pobierz managera pracownika", 
+               description = "Demonstruje @ManyToOne self-reference: pobiera Employee będącego managerem")
+    public ApiResponse<EmployeeDto> getManager(@PathVariable Long id) {
+        try {
+            return employeeService.getManager(id)
+                    .map(dto -> ApiResponse.success(dto, "Manager found"))
+                    .orElse(ApiResponse.success(null, "Employee has no manager"));
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to fetch manager: " + e.getMessage(), 500);
+        }
+    }
+
+    @DeleteMapping("/{id}/manager")
+    @Operation(summary = "Usuń przypisanie managera", 
+               description = "Demonstruje usunięcie self-reference: ustawia manager = null")
+    public ApiResponse<EmployeeDto> removeManager(@PathVariable Long id) {
+        try {
+            return employeeService.removeManager(id)
+                    .map(dto -> ApiResponse.success(dto, "Manager removed successfully"))
+                    .orElse(ApiResponse.notFound("Employee", id));
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to remove manager: " + e.getMessage(), 400);
+        }
+    }
+
+    @GetMapping("/{id}/hierarchy")
+    @Operation(summary = "Pobierz pracownika z pełną hierarchią", 
+               description = "Demonstruje bidirectional self-reference: zwraca pracownika z informacją o managerze i liście podwładnych")
+    public ApiResponse<EmployeeDto> getEmployeeWithHierarchy(@PathVariable Long id) {
+        try {
+            return employeeService.getEmployeeWithHierarchy(id)
+                    .map(dto -> ApiResponse.success(dto, "Employee hierarchy loaded"))
+                    .orElse(ApiResponse.notFound("Employee", id));
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to fetch employee hierarchy: " + e.getMessage(), 500);
         }
     }
 }

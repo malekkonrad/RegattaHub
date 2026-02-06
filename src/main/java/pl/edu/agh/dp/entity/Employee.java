@@ -32,22 +32,23 @@ public class Employee {
     @Column(nullable = false)
     private String lastName;
 
+    @Column(nullable = true)
     private String email;
-
+    @Column(nullable = true)
     private String phone;
 
     @Column(nullable = false, unique = true)
     private String employeeCode;
-
+    @Column(nullable = true)
     private LocalDate hireDate;
-
+    @Column(nullable = true)
     private BigDecimal salary;
-
+    @Column(nullable = true)
     private String position;
 
     // ==================== SELF-REFERENCE ====================
     @OneToMany(mappedBy = "manager")
-    @JoinColumn(joinColumns = {"subordinates"})
+    @JoinColumn(joinColumns = {"subordinates"}, nullable = true)
     private List<Employee> subordinates = new ArrayList<>();
 
     @ManyToOne(mappedBy = "subordinates")
