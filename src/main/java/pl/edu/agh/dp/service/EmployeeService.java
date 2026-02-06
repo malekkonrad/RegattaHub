@@ -308,13 +308,7 @@ public class EmployeeService {
                     employee.getDocuments().removeIf(d -> d.getId().equals(documentId));
                 }
 
-                // Usuń pracownika z listy dokumentu (bidirectional)
-                if (document.getAuthorizedEmployees() != null) {
-                    document.getAuthorizedEmployees().removeIf(e -> e.getId().equals(employeeId));
-                }
-
                 session.update(employee);
-                session.update(document);
                 session.commit();
 
                 return Optional.of(EmployeeDto.fromEntity(employee));

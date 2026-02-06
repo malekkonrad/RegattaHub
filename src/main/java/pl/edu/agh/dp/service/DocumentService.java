@@ -96,6 +96,7 @@ public class DocumentService {
         try (Session session = sessionFactory.openSession()) {
             Document document = session.find(Document.class, id);
             if (document != null) {
+                document.getAuthorizedEmployees().size();
                 return Optional.of(DocumentDto.fromEntity(document));
             }
             return Optional.empty();
@@ -126,6 +127,9 @@ public class DocumentService {
     public List<DocumentDto> findAll() {
         try (Session session = sessionFactory.openSession()) {
             List<Document> documents = session.findAll(Document.class);
+            for (Document document : documents) {
+                document.getAuthorizedEmployees().size();
+            }
             return documents.stream()
                     .map(DocumentDto::fromEntity)
                     .collect(Collectors.toList());
