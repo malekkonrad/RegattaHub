@@ -1,9 +1,11 @@
 package pl.edu.agh.dp.dto;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import pl.edu.agh.dp.entity.Notification;
 import pl.edu.agh.dp.entity.EmailNotification;
 import pl.edu.agh.dp.entity.SmsNotification;
@@ -12,12 +14,22 @@ import pl.edu.agh.dp.entity.PushNotification;
 import java.time.LocalDateTime;
 
 /**
- * DTO dla hierarchii Notification (TABLE_PER_CLASS inheritance).
+ * Bazowe DTO dla hierarchii Notification (TABLE_PER_CLASS inheritance).
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "notificationType"
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = EmailNotificationDto.class, name = "EMAIL"),
+        @JsonSubTypes.Type(value = SmsNotificationDto.class, name = "SMS"),
+        @JsonSubTypes.Type(value = PushNotificationDto.class, name = "PUSH")
+})
 public class NotificationDto {
 
     private Long id;
@@ -27,116 +39,112 @@ public class NotificationDto {
     private LocalDateTime sentAt;
     private Boolean isRead;
     private String status;
-    
-    // Typ powiadomienia
-    private String notificationType; // EMAIL, SMS, PUSH
-    
-    // Pola EmailNotification
-    private String recipientEmail;
-    private String subject;
-    private String senderEmail;
-    private String ccEmails;
-    private String bccEmails;
-    private Boolean isHtml;
-    
-    // Pola SmsNotification
-    private String phoneNumber;
-    private String senderNumber;
-    private String carrier;
-    private Boolean deliveryReport;
-    private Integer messageParts;
-    
-    // Pola PushNotification
-    private String deviceToken;
-    private String platform;
-    private String category;
-    private String actionUrl;
-    private String imageUrl;
-    private Integer badgeCount;
 
+    /**
+     * Konwertuje encję Notification na odpowiednie DTO w hierarchii.
+     */
     public static NotificationDto fromEntity(Notification notification) {
         if (notification == null) return null;
 
-        NotificationDto.NotificationDtoBuilder builder = NotificationDto.builder()
+        if (notification instanceof EmailNotification en) {
+            return EmailNotificationDto.builder()
+                    .id(en.getId())
+                    .title(en.getTitle())
+                    .message(en.getMessage())
+                    .createdAt(en.getCreatedAt())
+                    .sentAt(en.getSentAt())
+                    .isRead(en.getIsRead())
+                    .status(en.getStatus())
+                    .recipientEmail(en.getRecipientEmail())
+                    .subject(en.getSubject())
+                    .senderEmail(en.getSenderEmail())
+                    .ccEmails(en.getCcEmails())
+                    .bccEmails(en.getBccEmails())
+                    .isHtml(en.getIsHtml())
+                    .attachments(en.getAttachments())
+                    .build();
+        } else if (notification instanceof SmsNotification sn) {
+            return SmsNotificationDto.builder()
+                    .id(sn.getId())
+                    .title(sn.getTitle())
+                    .message(sn.getMessage())
+                    .createdAt(sn.getCreatedAt())
+                    .sentAt(sn.getSentAt())
+                    .isRead(sn.getIsRead())
+                    .status(sn.getStatus())
+                    .phoneNumber(sn.getPhoneNumber())
+                    .senderNumber(sn.getSenderNumber())
+                    .carrier(sn.getCarrier())
+                    .deliveryReport(sn.getDeliveryReport())
+                    .messageParts(sn.getMessageParts())
+                    .build();
+        } else if (notification instanceof PushNotification pn) {
+            return PushNotificationDto.builder()
+                    .id(pn.getId())
+                    .title(pn.getTitle())
+                    .message(pn.getMessage())
+                    .createdAt(pn.getCreatedAt())
+                    .sentAt(pn.getSentAt())
+                    .isRead(pn.getIsRead())
+                    .status(pn.getStatus())
+                    .deviceToken(pn.getDeviceToken())
+                    .platform(pn.getPlatform())
+                    .category(pn.getCategory())
+                    .actionUrl(pn.getActionUrl())
+                    .imageUrl(pn.getImageUrl())
+                    .badgeCount(pn.getBadgeCount())
+                    .isSilent(pn.getIsSilent())
+                    .timeToLive(pn.getTimeToLive())
+                    .build();
+        }
+
+        // Bazowy typ (nie powinien występować w praktyce)
+        return NotificationDto.builder()
                 .id(notification.getId())
                 .title(notification.getTitle())
                 .message(notification.getMessage())
                 .createdAt(notification.getCreatedAt())
                 .sentAt(notification.getSentAt())
                 .isRead(notification.getIsRead())
-                .status(notification.getStatus());
-
-        if (notification instanceof EmailNotification en) {
-            builder.notificationType("EMAIL")
-                    .recipientEmail(en.getRecipientEmail())
-                    .subject(en.getSubject())
-                    .senderEmail(en.getSenderEmail())
-                    .ccEmails(en.getCcEmails())
-                    .bccEmails(en.getBccEmails())
-                    .isHtml(en.getIsHtml());
-        } else if (notification instanceof SmsNotification sn) {
-            builder.notificationType("SMS")
-                    .phoneNumber(sn.getPhoneNumber())
-                    .senderNumber(sn.getSenderNumber())
-                    .carrier(sn.getCarrier())
-                    .deliveryReport(sn.getDeliveryReport())
-                    .messageParts(sn.getMessageParts());
-        } else if (notification instanceof PushNotification pn) {
-            builder.notificationType("PUSH")
-                    .deviceToken(pn.getDeviceToken())
-                    .platform(pn.getPlatform())
-                    .category(pn.getCategory())
-                    .actionUrl(pn.getActionUrl())
-                    .imageUrl(pn.getImageUrl())
-                    .badgeCount(pn.getBadgeCount());
-        } else {
-            builder.notificationType("BASE");
-        }
-
-        return builder.build();
+                .status(notification.getStatus())
+                .build();
     }
 
+    /**
+     * Konwertuje DTO na encję. Podklasy nadpisują tę metodę.
+     */
     public Notification toEntity() {
-        Notification notification;
-        
-        if ("EMAIL".equals(notificationType)) {
-            EmailNotification en = new EmailNotification();
-            en.setRecipientEmail(this.recipientEmail);
-            en.setSubject(this.subject);
-            en.setSenderEmail(this.senderEmail);
-            en.setCcEmails(this.ccEmails);
-            en.setBccEmails(this.bccEmails);
-            en.setIsHtml(this.isHtml);
-            notification = en;
-        } else if ("SMS".equals(notificationType)) {
-            SmsNotification sn = new SmsNotification();
-            sn.setPhoneNumber(this.phoneNumber);
-            sn.setSenderNumber(this.senderNumber);
-            sn.setCarrier(this.carrier);
-            sn.setDeliveryReport(this.deliveryReport);
-            sn.setMessageParts(this.messageParts);
-            notification = sn;
-        } else if ("PUSH".equals(notificationType)) {
-            PushNotification pn = new PushNotification();
-            pn.setDeviceToken(this.deviceToken);
-            pn.setPlatform(this.platform);
-            pn.setCategory(this.category);
-            pn.setActionUrl(this.actionUrl);
-            pn.setImageUrl(this.imageUrl);
-            pn.setBadgeCount(this.badgeCount);
-            notification = pn;
-        } else {
-            notification = new Notification();
-        }
-
-        notification.setId(this.id);
+        Notification notification = new Notification();
+//        notification.setId(this.id);
         notification.setTitle(this.title);
         notification.setMessage(this.message);
         notification.setCreatedAt(this.createdAt);
         notification.setSentAt(this.sentAt);
         notification.setIsRead(this.isRead);
         notification.setStatus(this.status);
-
         return notification;
+    }
+
+    /**
+     * Wypełnia wspólne pola encji z DTO.
+     */
+    protected void fillCommonFields(Notification notification) {
+//        notification.setId(this.id);
+        notification.setTitle(this.title);
+        notification.setMessage(this.message);
+        notification.setCreatedAt(this.createdAt);
+        notification.setSentAt(this.sentAt);
+        notification.setIsRead(this.isRead);
+        notification.setStatus(this.status);
+    }
+
+    /**
+     * Zwraca typ powiadomienia (do serializacji JSON).
+     */
+    public String getNotificationType() {
+        if (this instanceof EmailNotificationDto) return "EMAIL";
+        if (this instanceof SmsNotificationDto) return "SMS";
+        if (this instanceof PushNotificationDto) return "PUSH";
+        return "BASE";
     }
 }
