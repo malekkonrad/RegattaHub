@@ -38,6 +38,18 @@ public class NotificationController {
         }
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Pobierz powiadomienie po ID", description = "Automatycznie zwraca odpowiedni typ DTO (Email, SMS, Push)")
+    public ApiResponse<NotificationDto> getNotificationById(@PathVariable Long id) {
+        try {
+            return notificationService.findById(id)
+                    .map(dto -> ApiResponse.success(dto, "Notification found"))
+                    .orElse(ApiResponse.notFound("Notification", id));
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to fetch notification: " + e.getMessage(), 500);
+        }
+    }
+
     // ==================== EMAIL ENDPOINTS ====================
 
     @GetMapping("/email")

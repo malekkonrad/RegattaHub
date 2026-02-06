@@ -90,6 +90,22 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Znajduje powiadomienie po ID i automatycznie rzutuje na odpowiednie DTO.
+     * Przeszukuje wszystkie typy powiadomień.
+     */
+    public Optional<NotificationDto> findById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+
+            Notification notification = session.find(Notification.class, id);
+            if (notification != null) {
+                return Optional.of(NotificationDto.fromEntity(notification));
+            }
+
+            return Optional.empty();
+        }
+    }
+
     public Optional<EmailNotificationDto> findEmailById(Long id) {
         try (Session session = sessionFactory.openSession()) {
             EmailNotification notification = session.find(EmailNotification.class, id);
@@ -114,19 +130,11 @@ public class NotificationService {
     public List<NotificationDto> findAll() {
         try (Session session = sessionFactory.openSession()) {
             List<NotificationDto> result = new ArrayList<>();
-            
-//            List<EmailNotification> emails = session.findAll(EmailNotification.class);
-//            List<SmsNotification> sms = session.findAll(SmsNotification.class);
-//            List<PushNotification> push = session.findAll(PushNotification.class);
+
             List<Notification> notifications = session.findAll(Notification.class);
 
-
             notifications.forEach(notification -> result.add(NotificationDto.fromEntity(notification)));
-            
-//            emails.forEach(n -> result.add(EmailNotificationDto.fromEntity(n)));
-//            sms.forEach(n -> result.add(SmsNotificationDto.fromEntity(n)));
-//            push.forEach(n -> result.add(PushNotificationDto.fromEntity(n)));
-            
+
             return result;
         }
     }

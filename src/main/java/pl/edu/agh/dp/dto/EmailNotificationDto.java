@@ -1,5 +1,6 @@
 package pl.edu.agh.dp.dto;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -16,6 +17,7 @@ import pl.edu.agh.dp.entity.Notification;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
 public class EmailNotificationDto extends NotificationDto {
 
     private String recipientEmail;
