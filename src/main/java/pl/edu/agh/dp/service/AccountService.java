@@ -5,6 +5,9 @@ import pl.edu.agh.dp.api.Session;
 import pl.edu.agh.dp.api.SessionFactory;
 import pl.edu.agh.dp.config.OrmConfig;
 import pl.edu.agh.dp.dto.AccountDto;
+import pl.edu.agh.dp.dto.BankAccountDto;
+import pl.edu.agh.dp.dto.SavingsAccountDto;
+import pl.edu.agh.dp.dto.InvestmentAccountDto;
 import pl.edu.agh.dp.entity.Account;
 import pl.edu.agh.dp.entity.BankAccount;
 import pl.edu.agh.dp.entity.SavingsAccount;
@@ -42,6 +45,57 @@ public class AccountService {
         }
     }
 
+    public BankAccountDto createBank(BankAccountDto dto) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                BankAccount account = (BankAccount) dto.toEntity();
+                session.save(account);
+                session.commit();
+                return BankAccountDto.fromEntity(account);
+//            } catch (Exception e) {
+//                session.rollback();
+//                throw new RuntimeException("Failed to create bank account: " + e.getMessage(), e);
+//            }
+            } catch (Exception e) {
+                e.printStackTrace(); // 🔥
+                session.rollback();
+                throw e;
+//                throw new RuntimeException("Failed to create bank account: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public SavingsAccountDto createSavings(SavingsAccountDto dto) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                SavingsAccount account = (SavingsAccount) dto.toEntity();
+                session.save(account);
+                session.commit();
+                return SavingsAccountDto.fromEntity(account);
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to create savings account: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public InvestmentAccountDto createInvestment(InvestmentAccountDto dto) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                InvestmentAccount account = (InvestmentAccount) dto.toEntity();
+                session.save(account);
+                session.commit();
+                return InvestmentAccountDto.fromEntity(account);
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to create investment account: " + e.getMessage(), e);
+            }
+        }
+    }
+
     public Optional<AccountDto> findById(Long id) {
         try (Session session = sessionFactory.openSession()) {
             Account account = session.find(Account.class, id);
@@ -49,73 +103,120 @@ public class AccountService {
         }
     }
 
+    public Optional<BankAccountDto> findBankById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            BankAccount account = session.find(BankAccount.class, id);
+            return Optional.ofNullable(account).map(BankAccountDto::fromEntity);
+        }
+    }
+
+    public Optional<SavingsAccountDto> findSavingsById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            SavingsAccount account = session.find(SavingsAccount.class, id);
+            return Optional.ofNullable(account).map(SavingsAccountDto::fromEntity);
+        }
+    }
+
+    public Optional<InvestmentAccountDto> findInvestmentById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            InvestmentAccount account = session.find(InvestmentAccount.class, id);
+            return Optional.ofNullable(account).map(InvestmentAccountDto::fromEntity);
+        }
+    }
+
     public List<AccountDto> findAll() {
         try (Session session = sessionFactory.openSession()) {
             List<AccountDto> result = new ArrayList<>();
             
-            // Pobierz wszystkie typy kont
             List<BankAccount> bankAccounts = session.findAll(BankAccount.class);
             List<SavingsAccount> savingsAccounts = session.findAll(SavingsAccount.class);
             List<InvestmentAccount> investmentAccounts = session.findAll(InvestmentAccount.class);
             
-            bankAccounts.forEach(a -> result.add(AccountDto.fromEntity(a)));
-            savingsAccounts.forEach(a -> result.add(AccountDto.fromEntity(a)));
-            investmentAccounts.forEach(a -> result.add(AccountDto.fromEntity(a)));
+            bankAccounts.forEach(a -> result.add(BankAccountDto.fromEntity(a)));
+            savingsAccounts.forEach(a -> result.add(SavingsAccountDto.fromEntity(a)));
+            investmentAccounts.forEach(a -> result.add(InvestmentAccountDto.fromEntity(a)));
             
             return result;
         }
     }
 
-    public List<AccountDto> findAllBankAccounts() {
+    public List<BankAccountDto> findAllBankAccounts() {
         try (Session session = sessionFactory.openSession()) {
             return session.findAll(BankAccount.class).stream()
-                    .map(AccountDto::fromEntity)
+                    .map(BankAccountDto::fromEntity)
                     .collect(Collectors.toList());
         }
     }
 
-    public List<AccountDto> findAllSavingsAccounts() {
+    public List<SavingsAccountDto> findAllSavingsAccounts() {
         try (Session session = sessionFactory.openSession()) {
             return session.findAll(SavingsAccount.class).stream()
-                    .map(AccountDto::fromEntity)
+                    .map(SavingsAccountDto::fromEntity)
                     .collect(Collectors.toList());
         }
     }
 
-    public List<AccountDto> findAllInvestmentAccounts() {
+    public List<InvestmentAccountDto> findAllInvestmentAccounts() {
         try (Session session = sessionFactory.openSession()) {
             return session.findAll(InvestmentAccount.class).stream()
-                    .map(AccountDto::fromEntity)
+                    .map(InvestmentAccountDto::fromEntity)
                     .collect(Collectors.toList());
         }
     }
 
-    public Optional<AccountDto> update(Long id, AccountDto dto) {
+    public Optional<BankAccountDto> updateBank(Long id, BankAccountDto dto) {
         try (Session session = sessionFactory.openSession()) {
             session.begin();
             try {
-                Account existing = session.find(Account.class, id);
-                if (existing == null) {
-                    return Optional.empty();
-                }
-                
-                Account updated = dto.toEntity();
+                BankAccount updated = (BankAccount) dto.toEntity();
                 updated.setId(id);
                 session.update(updated);
                 session.commit();
-                return Optional.of(AccountDto.fromEntity(updated));
+                return Optional.of(BankAccountDto.fromEntity(updated));
             } catch (Exception e) {
                 session.rollback();
-                throw new RuntimeException("Failed to update account: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to update bank account: " + e.getMessage(), e);
             }
         }
     }
 
-    public boolean delete(Long id) {
+    public Optional<SavingsAccountDto> updateSavings(Long id, SavingsAccountDto dto) {
         try (Session session = sessionFactory.openSession()) {
             session.begin();
             try {
-                Account account = session.find(Account.class, id);
+                SavingsAccount updated = (SavingsAccount) dto.toEntity();
+                updated.setId(id);
+                session.update(updated);
+                session.commit();
+                return Optional.of(SavingsAccountDto.fromEntity(updated));
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to update savings account: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public Optional<InvestmentAccountDto> updateInvestment(Long id, InvestmentAccountDto dto) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                InvestmentAccount updated = (InvestmentAccount) dto.toEntity();
+                updated.setId(id);
+                session.update(updated);
+                session.commit();
+                return Optional.of(InvestmentAccountDto.fromEntity(updated));
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to update investment account: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public boolean deleteBank(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                BankAccount account = session.find(BankAccount.class, id);
                 if (account == null) {
                     return false;
                 }
@@ -124,7 +225,43 @@ public class AccountService {
                 return true;
             } catch (Exception e) {
                 session.rollback();
-                throw new RuntimeException("Failed to delete account: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to delete bank account: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public boolean deleteSavings(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                SavingsAccount account = session.find(SavingsAccount.class, id);
+                if (account == null) {
+                    return false;
+                }
+                session.delete(account);
+                session.commit();
+                return true;
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to delete savings account: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public boolean deleteInvestment(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                InvestmentAccount account = session.find(InvestmentAccount.class, id);
+                if (account == null) {
+                    return false;
+                }
+                session.delete(account);
+                session.commit();
+                return true;
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to delete investment account: " + e.getMessage(), e);
             }
         }
     }
