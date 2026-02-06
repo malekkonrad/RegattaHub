@@ -16,6 +16,7 @@ import java.util.List;
  * Demonstruje:
  * - Self-reference (manager/subordinates) - relacja do samego siebie
  * - Many-to-One (department) - wiele pracowników w jednym dziale
+ * - Many-to-Many (documents) - pracownik ma dostęp do wielu dokumentów
  */
 @Getter
 @Setter
@@ -59,4 +60,10 @@ public class Employee {
     @ManyToOne(mappedBy = "employees")
     @JoinColumn(joinColumns = {"department"}, nullable = true)
     private Department department;
+
+    // ==================== MANY-TO-MANY ====================
+
+    @ManyToMany(mappedBy = "authorizedEmployees")
+    @JoinColumn(joinColumns = {"documents"}, nullable = true)
+    private List<Document> documents;
 }

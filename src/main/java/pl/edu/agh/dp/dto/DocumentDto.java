@@ -12,6 +12,8 @@ import pl.edu.agh.dp.entity.Invoice;
 import pl.edu.agh.dp.entity.Report;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Bazowe DTO dla hierarchii Document (SINGLE_TABLE inheritance).
@@ -38,6 +40,9 @@ public class DocumentDto {
     private LocalDate createdDate;
     private String createdBy;
     private String content;
+
+    // === MANY-TO-MANY: Pracownicy z dostępem do dokumentu ===
+    private List<AuthorizedEmployeeInfo> authorizedEmployees;
 
     /**
      * Konwertuje encję Document na odpowiednie DTO w hierarchii.
@@ -130,5 +135,36 @@ public class DocumentDto {
         if (this instanceof ReportDto) return "REPORT";
         if (this instanceof CurriculumDto) return "CV";
         return "DOCUMENT";
+    }
+
+    /**
+     * Klasa wewnętrzna do prezentacji uprawnionych pracowników (MANY-TO-MANY).
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AuthorizedEmployeeInfo {
+        private Long id;
+        private String fullName;
+        private String position;
+    }
+
+    /**
+     * Ładuje listę uprawnionych pracowników do dokumentu.
+     */
+    public static List<AuthorizedEmployeeInfo> loadAuthorizedEmployees(Document document) {
+        if (document == null || document.getAuthorizedEmployees() == null) {
+            return null;
+        }
+        try {
+            return document.getAuthorizedEmployees().stream()
+                    .map(emp -> new AuthorizedEmployeeInfo(
+                            emp.getId(),
+                            emp.getFirstName() + " " + emp.getLastName(),
+                            emp.getPosition()))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

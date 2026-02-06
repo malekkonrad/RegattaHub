@@ -39,6 +39,9 @@ public class EmployeeDto {
     // === SELF-REFERENCE: Lista podwładnych (dla demonstracji) ===
     private List<SubordinateInfo> subordinates;
 
+    // === MANY-TO-MANY: Dokumenty do których pracownik ma dostęp ===
+    private List<DocumentAccessInfo> accessibleDocuments;
+
     /**
      * Konwertuje encję Employee na DTO.
      */
@@ -88,6 +91,21 @@ public class EmployeeDto {
             System.out.println("Warning: Could not load subordinates for employee " + employee.getId() + ": " + e.getMessage());
         }
 
+        // === MANY-TO-MANY: Dokumenty dostępne dla pracownika ===
+        try {
+            if (employee.getDocuments() != null && !employee.getDocuments().isEmpty()) {
+                List<DocumentAccessInfo> docInfos = employee.getDocuments().stream()
+                        .map(doc -> new DocumentAccessInfo(
+                                doc.getId(),
+                                doc.getTitle(),
+                                doc.getClass().getSimpleName()))
+                        .collect(Collectors.toList());
+                builder.accessibleDocuments(docInfos);
+            }
+        } catch (Exception e) {
+            System.out.println("Warning: Could not load documents for employee " + employee.getId() + ": " + e.getMessage());
+        }
+
         return builder.build();
     }
 
@@ -119,5 +137,18 @@ public class EmployeeDto {
         private Long id;
         private String fullName;
         private String position;
+    }
+
+    /**
+     * Klasa wewnętrzna do prezentacji dokumentów (MANY-TO-MANY).
+     * Uproszczona wersja Document do unikania rekurencji.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DocumentAccessInfo {
+        private Long id;
+        private String title;
+        private String documentType;
     }
 }

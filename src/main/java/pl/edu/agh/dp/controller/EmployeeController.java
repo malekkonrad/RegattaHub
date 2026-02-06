@@ -15,10 +15,11 @@ import java.util.List;
  * Demonstruje relacje:
  * - Many-to-One (Employee -> Department)
  * - Self-reference (Employee -> Manager)
+ * - Many-to-Many (Employee <-> Document)
  */
 @RestController
 @RequestMapping("/api/employees")
-@Tag(name = "Employees", description = "Zarządzanie pracownikami (relacje ManyToOne, Self-reference)")
+@Tag(name = "Employees", description = "Zarządzanie pracownikami (relacje ManyToOne, Self-reference, ManyToMany)")
 public class EmployeeController {
 
     private final EmployeeService employeeService;
@@ -160,6 +161,46 @@ public class EmployeeController {
                     .orElse(ApiResponse.notFound("Employee", id));
         } catch (Exception e) {
             return ApiResponse.error("Failed to fetch employee hierarchy: " + e.getMessage(), 500);
+        }
+    }
+
+    // ==================== MANY-TO-MANY ENDPOINTS ====================
+
+    @PutMapping("/{employeeId}/documents/{documentId}/grant")
+    @Operation(summary = "Przyznaj pracownikowi dostęp do dokumentu",
+               description = "Demonstruje dodawanie relacji ManyToMany: pracownik uzyskuje dostęp do dokumentu")
+    public ApiResponse<EmployeeDto> grantDocumentAccess(@PathVariable Long employeeId, @PathVariable Long documentId) {
+        try {
+            return employeeService.grantDocumentAccess(employeeId, documentId)
+                    .map(dto -> ApiResponse.success(dto, "Document access granted"))
+                    .orElse(ApiResponse.notFound("Employee", employeeId));
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to grant document access: " + e.getMessage(), 400);
+        }
+    }
+
+    @DeleteMapping("/{employeeId}/documents/{documentId}/revoke")
+    @Operation(summary = "Odbierz pracownikowi dostęp do dokumentu",
+               description = "Demonstruje usuwanie relacji ManyToMany: pracownik traci dostęp do dokumentu")
+    public ApiResponse<EmployeeDto> revokeDocumentAccess(@PathVariable Long employeeId, @PathVariable Long documentId) {
+        try {
+            return employeeService.revokeDocumentAccess(employeeId, documentId)
+                    .map(dto -> ApiResponse.success(dto, "Document access revoked"))
+                    .orElse(ApiResponse.notFound("Employee", employeeId));
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to revoke document access: " + e.getMessage(), 400);
+        }
+    }
+
+    @GetMapping("/{id}/documents")
+    @Operation(summary = "Pobierz dokumenty dostępne dla pracownika",
+               description = "Demonstruje odczyt relacji ManyToMany: lista dokumentów do których pracownik ma dostęp")
+    public ApiResponse<List<EmployeeDto.DocumentAccessInfo>> getAccessibleDocuments(@PathVariable Long id) {
+        try {
+            List<EmployeeDto.DocumentAccessInfo> documents = employeeService.getAccessibleDocuments(id);
+            return ApiResponse.success(documents, "Found " + documents.size() + " accessible documents");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to fetch accessible documents: " + e.getMessage(), 500);
         }
     }
 }

@@ -6,6 +6,7 @@ import pl.edu.agh.dp.api.SessionFactory;
 import pl.edu.agh.dp.config.OrmConfig;
 import pl.edu.agh.dp.dto.EmployeeDto;
 import pl.edu.agh.dp.entity.Department;
+import pl.edu.agh.dp.entity.Document;
 import pl.edu.agh.dp.entity.Employee;
 
 import java.util.ArrayList;
@@ -243,6 +244,104 @@ public class EmployeeService {
             }
             // DTO automatycznie zawiera manager i subordinates
             return Optional.of(EmployeeDto.fromEntity(employee));
+        }
+    }
+
+    // ==================== MANY-TO-MANY DEMONSTRATION ====================
+
+    /**
+     * Przyznaje pracownikowi dostęp do dokumentu.
+     * Demonstruje dodawanie relacji Many-to-Many.
+     */
+    public Optional<EmployeeDto> grantDocumentAccess(Long employeeId, Long documentId) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                Employee employee = session.find(Employee.class, employeeId);
+                if (employee == null) {
+                    return Optional.empty();
+                }
+
+                Document document = session.find(Document.class, documentId);
+                if (document == null) {
+                    throw new RuntimeException("Document not found: " + documentId);
+                }
+
+                employee.getDocuments().size(); // load
+
+                if (!employee.getDocuments().contains(document)) {
+                    employee.getDocuments().add(document);
+                }
+
+                session.update(employee);
+                session.commit();
+                return Optional.of(EmployeeDto.fromEntity(employee));
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to grant document access: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * Odbiera pracownikowi dostęp do dokumentu.
+     * Demonstruje usuwanie relacji Many-to-Many.
+     */
+    public Optional<EmployeeDto> revokeDocumentAccess(Long employeeId, Long documentId) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                Employee employee = session.find(Employee.class, employeeId);
+                session.load(employee, "documents");
+                if (employee == null) {
+                    return Optional.empty();
+                }
+
+                Document document = session.find(Document.class, documentId);
+                session.load(document, "authorizedEmployees");
+                if (document == null) {
+                    throw new RuntimeException("Document not found: " + documentId);
+                }
+
+                // Usuń dokument z listy pracownika
+                if (employee.getDocuments() != null) {
+                    employee.getDocuments().removeIf(d -> d.getId().equals(documentId));
+                }
+
+                // Usuń pracownika z listy dokumentu (bidirectional)
+                if (document.getAuthorizedEmployees() != null) {
+                    document.getAuthorizedEmployees().removeIf(e -> e.getId().equals(employeeId));
+                }
+
+                session.update(employee);
+                session.update(document);
+                session.commit();
+
+                return Optional.of(EmployeeDto.fromEntity(employee));
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to revoke document access: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * Pobiera wszystkie dokumenty do których pracownik ma dostęp.
+     * Demonstruje odczyt relacji Many-to-Many.
+     */
+    public List<EmployeeDto.DocumentAccessInfo> getAccessibleDocuments(Long employeeId) {
+        try (Session session = sessionFactory.openSession()) {
+            Employee employee = session.find(Employee.class, employeeId);
+            session.load(employee, "documents");
+            if (employee == null || employee.getDocuments() == null) {
+                return List.of();
+            }
+            return employee.getDocuments().stream()
+                    .map(doc -> new EmployeeDto.DocumentAccessInfo(
+                            doc.getId(),
+                            doc.getTitle(),
+                            doc.getClass().getSimpleName()))
+                    .collect(Collectors.toList());
         }
     }
 }
