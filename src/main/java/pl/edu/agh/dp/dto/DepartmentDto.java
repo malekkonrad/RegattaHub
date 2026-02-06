@@ -55,26 +55,26 @@ public class DepartmentDto {
                 .code(department.getCode())
                 .description(department.getDescription());
 
-//        if (department.getParentDepartment() != null) {
-//            builder.parentDepartmentId(department.getParentDepartment().getId())
-//                    .parentDepartmentName(department.getParentDepartment().getName());
-//        }
-//
-//        if (department.getEmployees() != null) {
-//            builder.employeeCount(department.getEmployees().size());
-//        }
-//
-//        if (department.getSubDepartments() != null && !department.getSubDepartments().isEmpty()) {
-//            builder.subDepartments(
-//                    department.getSubDepartments().stream()
-//                            .map(sub -> DepartmentSummaryDto.builder()
-//                                    .id(sub.getId())
-//                                    .name(sub.getName())
-//                                    .code(sub.getCode())
-//                                    .build())
-//                            .collect(Collectors.toList())
-//            );
-//        }
+        if (department.getParentDepartment() != null) {
+            builder.parentDepartmentId(department.getParentDepartment().getId())
+                    .parentDepartmentName(department.getParentDepartment().getName());
+        }
+
+        if (department.getEmployees() != null) {
+            builder.employeeCount(department.getEmployees().size());
+        }
+
+        if (department.getSubDepartments() != null && !department.getSubDepartments().isEmpty()) {
+            builder.subDepartments(
+                    department.getSubDepartments().stream()
+                            .map(sub -> DepartmentSummaryDto.builder()
+                                    .id(sub.getId())
+                                    .name(sub.getName())
+                                    .code(sub.getCode())
+                                    .build())
+                            .collect(Collectors.toList())
+            );
+        }
 
         return builder.build();
     }
@@ -84,7 +84,7 @@ public class DepartmentDto {
      */
     public Department toEntity() {
         Department department = new Department();
-        department.setId(this.id);
+//        department.setId(this.id);
         department.setName(this.name);
         department.setCode(this.code);
         department.setDescription(this.description);

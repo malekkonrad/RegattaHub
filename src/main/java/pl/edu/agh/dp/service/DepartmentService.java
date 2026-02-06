@@ -32,6 +32,14 @@ public class DepartmentService {
             session.begin();
             try {
                 Department department = dto.toEntity();
+
+                if (dto.getParentDepartmentId() != null) {
+                    Department parent = session.find(Department.class, dto.getParentDepartmentId());
+                    if (parent != null) {
+                        department.setParentDepartment(parent);
+                    }
+                }
+
                 session.save(department);
                 session.commit();
                 return DepartmentDto.fromEntity(department);
@@ -45,6 +53,7 @@ public class DepartmentService {
     public Optional<DepartmentDto> findById(Long id) {
         try (Session session = sessionFactory.openSession()) {
             Department department = session.find(Department.class, id);
+            session.load(department, "parentDepartment");
             return Optional.ofNullable(department).map(DepartmentDto::fromEntity);
         }
     }
@@ -52,6 +61,9 @@ public class DepartmentService {
     public List<DepartmentDto> findAll() {
         try (Session session = sessionFactory.openSession()) {
             List<Department> departments = session.findAll(Department.class);
+            for (Department department : departments) {
+                session.load(department, "parentDepartment");
+            }
             return departments.stream()
                     .map(DepartmentDto::fromEntity)
                     .collect(Collectors.toList());

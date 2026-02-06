@@ -38,6 +38,11 @@ public class EmployeeService {
                     Employee manager = session.find(Employee.class, dto.getManagerId());
                     employee.setManager(manager);
                 }
+
+                if (dto.getDepartmentId() != null) {
+                    Department department = session.find(Department.class, dto.getDepartmentId());
+                    employee.setDepartment(department);
+                }
                 session.save(employee);
                 session.commit();
                 return EmployeeDto.fromEntity(employee);
@@ -52,6 +57,7 @@ public class EmployeeService {
         try (Session session = sessionFactory.openSession()) {
             Employee employee = session.find(Employee.class, id);
             session.load(employee, "manager");
+            session.load(employee, "department");
             return Optional.ofNullable(employee).map(EmployeeDto::fromEntity);
         }
     }
@@ -65,6 +71,7 @@ public class EmployeeService {
             List<EmployeeDto> result = new ArrayList<>();
             for (Employee e : employees) {
                 session.load(e, "manager");
+                session.load(e, "department");
                 result.add(EmployeeDto.fromEntity(e));
             }
             return result;
@@ -153,11 +160,9 @@ public class EmployeeService {
 
                 Employee manager = session.find(Employee.class, managerId);
                 if (manager != null) {
-                    System.out.println(manager.getFirstName());
                     employee.setManager(manager);
                     session.update(employee);
                 }
-                System.out.println(employee.getManager().getId());
                 session.commit();
                 return Optional.of(EmployeeDto.fromEntity(employee));
             } catch (Exception e) {
