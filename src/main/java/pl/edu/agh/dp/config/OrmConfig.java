@@ -30,7 +30,7 @@ public class OrmConfig {
                     .setProperty("db.user", dbUser)
                     .setProperty("db.password", dbPassword)
                     .setProperty("db.driver", "org.postgresql.Driver")
-                    .setProperty("orm.schema.auto", "create")
+                    .setProperty("orm.schema.auto", "drop-create")
                     // Rejestracja wszystkich encji
                     .register(
                             // Dziedziczenie JOINED - Account/BankAccount/SavingsAccount/InvestmentAccount
@@ -45,6 +45,7 @@ public class OrmConfig {
                             Document.class,
                             Invoice.class,
                             Report.class,
+                            Curriculum.class,
                             // Dziedziczenie TABLE_PER_CLASS - Notification
                             Notification.class,
                             EmailNotification.class,

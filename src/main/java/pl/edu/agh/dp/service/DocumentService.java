@@ -1,9 +1,14 @@
 package pl.edu.agh.dp.service;
 
+import org.springframework.stereotype.Service;
 import pl.edu.agh.dp.api.Session;
 import pl.edu.agh.dp.api.SessionFactory;
 import pl.edu.agh.dp.config.OrmConfig;
+import pl.edu.agh.dp.dto.CurriculumDto;
 import pl.edu.agh.dp.dto.DocumentDto;
+import pl.edu.agh.dp.dto.InvoiceDto;
+import pl.edu.agh.dp.dto.ReportDto;
+import pl.edu.agh.dp.entity.Curriculum;
 import pl.edu.agh.dp.entity.Document;
 import pl.edu.agh.dp.entity.Invoice;
 import pl.edu.agh.dp.entity.Report;
@@ -13,13 +18,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Serwis dla operacji na Document i podklasach (Invoice, Report).
- * 
- * Demonstruje:
- * - SINGLE_TABLE inheritance
- * - Polimorficzne zapytania (findAll zwraca różne typy)
- * - Discriminator value
+ * Serwis dla operacji na Document (SINGLE_TABLE inheritance).
  */
+@Service
 public class DocumentService {
 
     private final SessionFactory sessionFactory;
@@ -28,14 +29,6 @@ public class DocumentService {
         this.sessionFactory = OrmConfig.getSessionFactory();
     }
 
-    public DocumentService(SessionFactory sessionFactory) {
-        this.sessionFactory = sessionFactory;
-    }
-
-    /**
-     * Tworzy nowy dokument (lub podtyp).
-     * Demonstruje: polimorficzny zapis z SINGLE_TABLE
-     */
     public DocumentDto create(DocumentDto dto) {
         try (Session session = sessionFactory.openSession()) {
             session.begin();
@@ -43,7 +36,6 @@ public class DocumentService {
                 Document document = dto.toEntity();
                 session.save(document);
                 session.commit();
-
                 return DocumentDto.fromEntity(document);
             } catch (Exception e) {
                 session.rollback();
@@ -52,37 +44,85 @@ public class DocumentService {
         }
     }
 
-    /**
-     * Tworzy fakturę.
-     */
-    public DocumentDto createInvoice(DocumentDto dto) {
-        dto.setDocumentType("INVOICE");
-        return create(dto);
-    }
-
-    /**
-     * Tworzy raport.
-     */
-    public DocumentDto createReport(DocumentDto dto) {
-        dto.setDocumentType("REPORT");
-        return create(dto);
-    }
-
-    /**
-     * Znajduje dokument po ID.
-     * Demonstruje: polimorficzne wyszukiwanie - zwraca konkretny podtyp
-     */
-    public Optional<DocumentDto> findById(Long id) {
+    public ReportDto createReport(ReportDto dto) {
         try (Session session = sessionFactory.openSession()) {
-            Document document = session.find(Document.class, id);
-            return Optional.ofNullable(document).map(DocumentDto::fromEntity);
+            session.begin();
+            try {
+                Report document = (Report) dto.toEntity();
+                session.save(document);
+                session.commit();
+                return ReportDto.fromEntity(document);
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to create report: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public InvoiceDto createInvoice(InvoiceDto dto) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                Invoice document = (Invoice) dto.toEntity();
+                session.save(document);
+                session.commit();
+                return InvoiceDto.fromEntity(document);
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to create invoice: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public CurriculumDto createCirriculum(CurriculumDto dto) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                Curriculum document = (Curriculum) dto.toEntity();
+                session.save(document);
+                session.commit();
+                return CurriculumDto.fromEntity(document);
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to create cirriculum: " + e.getMessage(), e);
+            }
         }
     }
 
     /**
-     * Pobiera wszystkie dokumenty (wszystkich typów).
-     * Demonstruje: polimorficzne findAll z SINGLE_TABLE
+     * Znajduje dokument po ID i automatycznie rzutuje na odpowiednie DTO.
      */
+    public Optional<DocumentDto> findById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            Document document = session.find(Document.class, id);
+            if (document != null) {
+                return Optional.of(DocumentDto.fromEntity(document));
+            }
+            return Optional.empty();
+        }
+    }
+
+    public Optional<ReportDto> findReportById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            Report document = session.find(Report.class, id);
+            return Optional.ofNullable(document).map(ReportDto::fromEntity);
+        }
+    }
+
+    public Optional<InvoiceDto> findInvoiceById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            Invoice document = session.find(Invoice.class, id);
+            return Optional.ofNullable(document).map(InvoiceDto::fromEntity);
+        }
+    }
+
+    public Optional<CurriculumDto> findCirriculumById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            Curriculum document = session.find(Curriculum.class, id);
+            return Optional.ofNullable(document).map(CurriculumDto::fromEntity);
+        }
+    }
+
     public List<DocumentDto> findAll() {
         try (Session session = sessionFactory.openSession()) {
             List<Document> documents = session.findAll(Document.class);
@@ -93,139 +133,148 @@ public class DocumentService {
     }
 
     /**
-     * Pobiera tylko faktury.
-     * Demonstruje: filtrowanie po typie w hierarchii
+     * Pobiera wszystkie raporty (bez faktur) - tylko "czyste" Report.
      */
-    public List<DocumentDto> findAllInvoices() {
+//    public List<ReportDto> findAllReports() {
+//        try (Session session = sessionFactory.openSession()) {
+//            return session.findAll(Report.class).stream()
+//                    .filter(report -> !(report instanceof Invoice))  // filtruj faktury
+//                    .map(ReportDto::fromEntity)
+//                    .collect(Collectors.toList());
+//        }
+//    }
+
+    /**
+     * Pobiera wszystkie raporty włącznie z fakturami - zwraca polimorficzne DTO.
+     */
+    public List<ReportDto> findAllReports() {
         try (Session session = sessionFactory.openSession()) {
-            List<Invoice> invoices = session.findAll(Invoice.class);
-            return invoices.stream()
-                    .map(DocumentDto::fromEntity)
+            return session.findAll(Report.class).stream()
+                    .map(report -> {
+                        if (report instanceof Invoice inv) {
+                            return InvoiceDto.fromEntity(inv);
+                        }
+                        return ReportDto.fromEntity(report);
+                    })
                     .collect(Collectors.toList());
         }
     }
 
-    /**
-     * Pobiera tylko raporty.
-     */
-    public List<DocumentDto> findAllReports() {
+    public List<InvoiceDto> findAllInvoices() {
         try (Session session = sessionFactory.openSession()) {
-            List<Report> reports = session.findAll(Report.class);
-            return reports.stream()
-                    .map(DocumentDto::fromEntity)
+            return session.findAll(Invoice.class).stream()
+                    .map(InvoiceDto::fromEntity)
                     .collect(Collectors.toList());
         }
     }
 
-    /**
-     * Aktualizuje dokument.
-     */
-    public Optional<DocumentDto> update(Long id, DocumentDto dto) {
+    public List<CurriculumDto> findAllCirriculums() {
+        try (Session session = sessionFactory.openSession()) {
+            return session.findAll(Curriculum.class).stream()
+                    .map(CurriculumDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    public Optional<ReportDto> updateReport(Long id, ReportDto dto) {
         try (Session session = sessionFactory.openSession()) {
             session.begin();
             try {
-                Document existing = session.find(Document.class, id);
-                if (existing == null) {
-                    return Optional.empty();
-                }
-
-                // Aktualizuj wspólne pola
-                existing.setTitle(dto.getTitle());
-                existing.setCreatedDate(dto.getCreatedDate());
-                existing.setCreatedBy(dto.getCreatedBy());
-                existing.setContent(dto.getContent());
-
-                // Aktualizuj pola specyficzne dla podtypu
-                if (existing instanceof Invoice invoice) {
-                    // Report fields (inherited)
-                    invoice.setReportType(dto.getReportType());
-                    invoice.setPeriodStart(dto.getPeriodStart());
-                    invoice.setPeriodEnd(dto.getPeriodEnd());
-                    invoice.setStatus(dto.getStatus());
-                    // Invoice-specific fields
-                    invoice.setInvoiceNumber(dto.getInvoiceNumber());
-                    invoice.setIssueDate(dto.getIssueDate());
-                    invoice.setDueDate(dto.getDueDate());
-                    invoice.setTotalAmount(dto.getTotalAmount());
-                    invoice.setTaxAmount(dto.getTaxAmount());
-                    invoice.setPaymentStatus(dto.getPaymentStatus());
-                } else if (existing instanceof Report report) {
-                    report.setReportType(dto.getReportType());
-                    report.setPeriodStart(dto.getPeriodStart());
-                    report.setPeriodEnd(dto.getPeriodEnd());
-                    report.setStatus(dto.getStatus());
-                }
-
-                session.update(existing);
+                Report updated = (Report) dto.toEntity();
+                updated.setId(id);
+                session.update(updated);
                 session.commit();
-
-                return Optional.of(DocumentDto.fromEntity(existing));
+                return Optional.of(ReportDto.fromEntity(updated));
             } catch (Exception e) {
                 session.rollback();
-                throw new RuntimeException("Failed to update document: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to update report: " + e.getMessage(), e);
             }
         }
     }
 
-    /**
-     * Usuwa dokument.
-     */
-    public boolean delete(Long id) {
+    public Optional<InvoiceDto> updateInvoice(Long id, InvoiceDto dto) {
         try (Session session = sessionFactory.openSession()) {
             session.begin();
             try {
-                Document document = session.find(Document.class, id);
+                Invoice updated = (Invoice) dto.toEntity();
+                updated.setId(id);
+                session.update(updated);
+                session.commit();
+                return Optional.of(InvoiceDto.fromEntity(updated));
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to update invoice: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public Optional<CurriculumDto> updateCirriculum(Long id, CurriculumDto dto) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                Curriculum updated = (Curriculum) dto.toEntity();
+                updated.setId(id);
+                session.update(updated);
+                session.commit();
+                return Optional.of(CurriculumDto.fromEntity(updated));
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to update cirriculum: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public boolean deleteReport(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            session.begin();
+            try {
+                Report document = session.find(Report.class, id);
                 if (document == null) {
                     return false;
                 }
-
                 session.delete(document);
                 session.commit();
                 return true;
             } catch (Exception e) {
                 session.rollback();
-                throw new RuntimeException("Failed to delete document: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to delete report: " + e.getMessage(), e);
             }
         }
     }
 
-    /**
-     * Oznacza fakturę jako opłaconą.
-     * Demonstruje: operacja specyficzna dla podtypu
-     */
-    public Optional<DocumentDto> markInvoiceAsPaid(Long invoiceId) {
+    public boolean deleteInvoice(Long id) {
         try (Session session = sessionFactory.openSession()) {
             session.begin();
             try {
-                Document document = session.find(Document.class, invoiceId);
-                if (!(document instanceof Invoice invoice)) {
-                    return Optional.empty();
+                Invoice document = session.find(Invoice.class, id);
+                if (document == null) {
+                    return false;
                 }
-
-                invoice.setPaymentStatus("PAID");
-                session.update(invoice);
+                session.delete(document);
                 session.commit();
-
-                return Optional.of(DocumentDto.fromEntity(invoice));
+                return true;
             } catch (Exception e) {
                 session.rollback();
-                throw new RuntimeException("Failed to mark invoice as paid: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to delete invoice: " + e.getMessage(), e);
             }
         }
     }
 
-    /**
-     * Pobiera nieopłacone faktury.
-     */
-    public List<DocumentDto> findUnpaidInvoices() {
+    public boolean deleteCirriculum(Long id) {
         try (Session session = sessionFactory.openSession()) {
-            List<Invoice> invoices = session.findAll(Invoice.class);
-            return invoices.stream()
-                    .filter(i -> i.getPaymentStatus() == null || 
-                                 "PENDING".equals(i.getPaymentStatus()) ||
-                                 !i.getPaymentStatus().equals("PAID"))
-                    .map(DocumentDto::fromEntity)
-                    .collect(Collectors.toList());
+            session.begin();
+            try {
+                Curriculum document = session.find(Curriculum.class, id);
+                if (document == null) {
+                    return false;
+                }
+                session.delete(document);
+                session.commit();
+                return true;
+            } catch (Exception e) {
+                session.rollback();
+                throw new RuntimeException("Failed to delete cirriculum: " + e.getMessage(), e);
+            }
         }
     }
 }

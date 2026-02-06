@@ -1,26 +1,36 @@
 package pl.edu.agh.dp.dto;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import pl.edu.agh.dp.entity.Curriculum;
 import pl.edu.agh.dp.entity.Document;
 import pl.edu.agh.dp.entity.Invoice;
 import pl.edu.agh.dp.entity.Report;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * DTO dla hierarchii Document (SINGLE_TABLE inheritance).
- * Demonstruje polimorficzne mapowanie DTO.
- * 
- * Hierarchia: Document -> Report -> Invoice
+ * Bazowe DTO dla hierarchii Document (SINGLE_TABLE inheritance).
+ * Hierarchia: Document <- Report <- Invoice, Document <- Cirriculum
  */
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "documentType"
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = ReportDto.class, name = "REPORT"),
+        @JsonSubTypes.Type(value = InvoiceDto.class, name = "INVOICE"),
+        @JsonSubTypes.Type(value = CurriculumDto.class, name = "CV")
+})
 public class DocumentDto {
 
     private Long id;
@@ -28,104 +38,97 @@ public class DocumentDto {
     private LocalDate createdDate;
     private String createdBy;
     private String content;
-    private String documentType; // DOCUMENT, REPORT, INVOICE
-
-    // Pola specyficzne dla Report (i dziedziczone przez Invoice)
-    private String reportType;
-    private LocalDate periodStart;
-    private LocalDate periodEnd;
-    private String status;
-
-    // Pola specyficzne dla Invoice
-    private String invoiceNumber;
-    private LocalDate issueDate;
-    private LocalDate dueDate;
-    private BigDecimal totalAmount;
-    private BigDecimal taxAmount;
-    private String paymentStatus;
 
     /**
-     * Konwertuje encję Document (lub podklasę) na DTO.
+     * Konwertuje encję Document na odpowiednie DTO w hierarchii.
      */
     public static DocumentDto fromEntity(Document document) {
-        if (document == null) {
-            return null;
+        if (document == null) return null;
+
+        if (document instanceof Invoice inv) {
+            return InvoiceDto.builder()
+                    .id(inv.getId())
+                    .title(inv.getTitle())
+                    .createdDate(inv.getCreatedDate())
+                    .createdBy(inv.getCreatedBy())
+                    .content(inv.getContent())
+                    // Report fields
+                    .reportType(inv.getReportType())
+                    .periodStart(inv.getPeriodStart())
+                    .periodEnd(inv.getPeriodEnd())
+                    .status(inv.getStatus())
+                    // Invoice fields
+                    .invoiceNumber(inv.getInvoiceNumber())
+                    .issueDate(inv.getIssueDate())
+                    .dueDate(inv.getDueDate())
+                    .totalAmount(inv.getTotalAmount())
+                    .taxAmount(inv.getTaxAmount())
+                    .paymentStatus(inv.getPaymentStatus())
+                    .build();
+        } else if (document instanceof Report rep) {
+            return ReportDto.builder()
+                    .id(rep.getId())
+                    .title(rep.getTitle())
+                    .createdDate(rep.getCreatedDate())
+                    .createdBy(rep.getCreatedBy())
+                    .content(rep.getContent())
+                    .reportType(rep.getReportType())
+                    .periodStart(rep.getPeriodStart())
+                    .periodEnd(rep.getPeriodEnd())
+                    .status(rep.getStatus())
+                    .build();
+        } else if (document instanceof Curriculum cv) {
+            return CurriculumDto.builder()
+                    .id(cv.getId())
+                    .title(cv.getTitle())
+                    .createdDate(cv.getCreatedDate())
+                    .createdBy(cv.getCreatedBy())
+                    .content(cv.getContent())
+                    .name(cv.getName())
+                    .surname(cv.getSurname())
+                    .creationDate(cv.getCreationDate())
+                    .build();
         }
 
-        DocumentDtoBuilder builder = DocumentDto.builder()
+        // Bazowy typ
+        return DocumentDto.builder()
                 .id(document.getId())
                 .title(document.getTitle())
                 .createdDate(document.getCreatedDate())
                 .createdBy(document.getCreatedBy())
-                .content(document.getContent());
-
-        if (document instanceof Invoice invoice) {
-            builder.documentType("INVOICE")
-                    // Report fields (inherited)
-                    .reportType(invoice.getReportType())
-                    .periodStart(invoice.getPeriodStart())
-                    .periodEnd(invoice.getPeriodEnd())
-                    .status(invoice.getStatus())
-                    // Invoice-specific fields
-                    .invoiceNumber(invoice.getInvoiceNumber())
-                    .issueDate(invoice.getIssueDate())
-                    .dueDate(invoice.getDueDate())
-                    .totalAmount(invoice.getTotalAmount())
-                    .taxAmount(invoice.getTaxAmount())
-                    .paymentStatus(invoice.getPaymentStatus());
-        } else if (document instanceof Report report) {
-            builder.documentType("REPORT")
-                    .reportType(report.getReportType())
-                    .periodStart(report.getPeriodStart())
-                    .periodEnd(report.getPeriodEnd())
-                    .status(report.getStatus());
-        } else {
-            builder.documentType("DOCUMENT");
-        }
-
-        return builder.build();
+                .content(document.getContent())
+                .build();
     }
 
     /**
-     * Konwertuje DTO na odpowiednią encję na podstawie documentType.
+     * Konwertuje DTO na encję. Podklasy nadpisują tę metodę.
      */
     public Document toEntity() {
-        Document document;
-
-        switch (documentType != null ? documentType : "DOCUMENT") {
-            case "INVOICE" -> {
-                Invoice invoice = new Invoice();
-                // Report fields (inherited)
-                invoice.setReportType(this.reportType);
-                invoice.setPeriodStart(this.periodStart);
-                invoice.setPeriodEnd(this.periodEnd);
-                invoice.setStatus(this.status);
-                // Invoice-specific fields
-                invoice.setInvoiceNumber(this.invoiceNumber);
-                invoice.setIssueDate(this.issueDate);
-                invoice.setDueDate(this.dueDate);
-                invoice.setTotalAmount(this.totalAmount);
-                invoice.setTaxAmount(this.taxAmount);
-                invoice.setPaymentStatus(this.paymentStatus);
-                document = invoice;
-            }
-            case "REPORT" -> {
-                Report report = new Report();
-                report.setReportType(this.reportType);
-                report.setPeriodStart(this.periodStart);
-                report.setPeriodEnd(this.periodEnd);
-                report.setStatus(this.status);
-                document = report;
-            }
-            default -> document = new Document();
-        }
-
-        document.setId(this.id);
+        Document document = new Document();
         document.setTitle(this.title);
         document.setCreatedDate(this.createdDate);
         document.setCreatedBy(this.createdBy);
         document.setContent(this.content);
-
         return document;
+    }
+
+    /**
+     * Wypełnia wspólne pola encji z DTO.
+     */
+    protected void fillCommonFields(Document document) {
+        document.setTitle(this.title);
+        document.setCreatedDate(this.createdDate);
+        document.setCreatedBy(this.createdBy);
+        document.setContent(this.content);
+    }
+
+    /**
+     * Zwraca typ dokumentu (do serializacji JSON).
+     */
+    public String getDocumentType() {
+        if (this instanceof InvoiceDto) return "INVOICE";
+        if (this instanceof ReportDto) return "REPORT";
+        if (this instanceof CurriculumDto) return "CV";
+        return "DOCUMENT";
     }
 }
