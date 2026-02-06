@@ -33,9 +33,6 @@ public class OrmConfig {
                     .setProperty("orm.schema.auto", "create")
                     // Rejestracja wszystkich encji
                     .register(
-                            // Dziedziczenie JOINED - Person/Client
-                            Person.class,
-                            Client.class,
                             // Dziedziczenie JOINED - Account/BankAccount/SavingsAccount/InvestmentAccount
                             Account.class,
                             BankAccount.class,
