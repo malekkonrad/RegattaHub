@@ -4,14 +4,8 @@ import org.springframework.stereotype.Service;
 import pl.edu.agh.dp.api.Session;
 import pl.edu.agh.dp.api.SessionFactory;
 import pl.edu.agh.dp.config.OrmConfig;
-import pl.edu.agh.dp.dto.AccountDto;
-import pl.edu.agh.dp.dto.BankAccountDto;
-import pl.edu.agh.dp.dto.SavingsAccountDto;
-import pl.edu.agh.dp.dto.InvestmentAccountDto;
-import pl.edu.agh.dp.entity.Account;
-import pl.edu.agh.dp.entity.BankAccount;
-import pl.edu.agh.dp.entity.SavingsAccount;
-import pl.edu.agh.dp.entity.InvestmentAccount;
+import pl.edu.agh.dp.dto.*;
+import pl.edu.agh.dp.entity.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -96,10 +90,17 @@ public class AccountService {
         }
     }
 
+    /**
+     * Znajduje konto po ID i automatycznie rzutuje na odpowiednie DTO.
+     * Przeszukuje wszystkie typy kont.
+     */
     public Optional<AccountDto> findById(Long id) {
         try (Session session = sessionFactory.openSession()) {
             Account account = session.find(Account.class, id);
-            return Optional.ofNullable(account).map(AccountDto::fromEntity);
+            if (account != null) {
+                return Optional.of(AccountDto.fromEntity(account));
+            }
+            return Optional.empty();
         }
     }
 

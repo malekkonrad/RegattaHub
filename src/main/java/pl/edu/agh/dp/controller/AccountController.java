@@ -38,6 +38,18 @@ public class AccountController {
         }
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Pobierz konto po ID", description = "Automatycznie zwraca odpowiedni typ DTO (Bank, Savings, Investment)")
+    public ApiResponse<AccountDto> getAccountById(@PathVariable Long id) {
+        try {
+            return accountService.findById(id)
+                    .map(dto -> ApiResponse.success(dto, "Account found"))
+                    .orElse(ApiResponse.notFound("Account", id));
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to fetch account: " + e.getMessage(), 500);
+        }
+    }
+
     // ==================== BANK ACCOUNT ENDPOINTS ====================
 
     @GetMapping("/bank")
