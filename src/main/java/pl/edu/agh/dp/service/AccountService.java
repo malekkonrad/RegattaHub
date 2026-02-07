@@ -47,15 +47,9 @@ public class AccountService {
                 session.save(account);
                 session.commit();
                 return BankAccountDto.fromEntity(account);
-//            } catch (Exception e) {
-//                session.rollback();
-//                throw new RuntimeException("Failed to create bank account: " + e.getMessage(), e);
-//            }
             } catch (Exception e) {
-                e.printStackTrace(); // 🔥
                 session.rollback();
-                throw e;
-//                throw new RuntimeException("Failed to create bank account: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to create bank account: " + e.getMessage(), e);
             }
         }
     }

@@ -137,18 +137,6 @@ public class DocumentService {
     }
 
     /**
-     * Pobiera wszystkie raporty (bez faktur) - tylko "czyste" Report.
-     */
-//    public List<ReportDto> findAllReports() {
-//        try (Session session = sessionFactory.openSession()) {
-//            return session.findAll(Report.class).stream()
-//                    .filter(report -> !(report instanceof Invoice))  // filtruj faktury
-//                    .map(ReportDto::fromEntity)
-//                    .collect(Collectors.toList());
-//        }
-//    }
-
-    /**
      * Pobiera wszystkie raporty włącznie z fakturami - zwraca polimorficzne DTO.
      */
     public List<ReportDto> findAllReports() {
