@@ -10,6 +10,7 @@ import pl.edu.agh.dp.dto.InvestmentAccountDto;
 import pl.edu.agh.dp.dto.ApiResponse;
 import pl.edu.agh.dp.service.AccountService;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -244,6 +245,77 @@ public class AccountController {
             return ApiResponse.created(created);
         } catch (Exception e) {
             return ApiResponse.error("Failed to create account: " + e.getMessage(), 400);
+        }
+    }
+
+    // ==================== FINDER API ENDPOINTS (JOINED INHERITANCE) ====================
+
+    @GetMapping("/finder/by-currency")
+    @Operation(summary = "Wyszukaj konta po walucie",
+               description = "Demonstruje Finder eq() na klasie bazowej JOINED - polimorficzne wyszukiwanie wszystkich typów kont (Bank, Savings, Investment)")
+    public ApiResponse<List<AccountDto>> findAccountsByCurrency(@RequestParam String currency) {
+        try {
+            List<AccountDto> accounts = accountService.findAccountsByCurrency(currency);
+            return ApiResponse.success(accounts, 
+                    "Finder eq() na Account (JOINED base): Found " + accounts.size() + " accounts with currency '" + currency + "'");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find accounts: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/by-balance-between")
+    @Operation(summary = "Wyszukaj konta z saldem w zakresie",
+               description = "Demonstruje Finder between() na polu z klasy bazowej Account - zwraca wszystkie typy kont")
+    public ApiResponse<List<AccountDto>> findAccountsByBalanceBetween(
+            @RequestParam BigDecimal minBalance,
+            @RequestParam BigDecimal maxBalance) {
+        try {
+            List<AccountDto> accounts = accountService.findAccountsByBalanceBetween(minBalance, maxBalance);
+            return ApiResponse.success(accounts, 
+                    "Finder between() na Account (JOINED base): Found " + accounts.size() + " accounts with balance between " + minBalance + " and " + maxBalance);
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find accounts: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/active-by-currency-and-min-balance")
+    @Operation(summary = "Wyszukaj aktywne konta po walucie i minimalnym saldzie",
+               description = "Demonstruje Finder z wieloma warunkami (eq + gt + eq) na hierarchii JOINED")
+    public ApiResponse<List<AccountDto>> findActiveAccountsByCurrencyAndMinBalance(
+            @RequestParam String currency,
+            @RequestParam BigDecimal minBalance) {
+        try {
+            List<AccountDto> accounts = accountService.findActiveAccountsByCurrencyAndMinBalance(currency, minBalance);
+            return ApiResponse.success(accounts, 
+                    "Finder eq()+gt()+eq() na Account (JOINED): Found " + accounts.size() + " active " + currency + " accounts with balance > " + minBalance);
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find accounts: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/savings/by-interest-rate-greater-than")
+    @Operation(summary = "Wyszukaj konta oszczędnościowe z oprocentowaniem większym niż podane",
+               description = "Demonstruje Finder gt() na klasie pochodnej SavingsAccount - wyszukiwanie po polu specyficznym (interestRate)")
+    public ApiResponse<List<SavingsAccountDto>> findSavingsAccountsByInterestRateGreaterThan(@RequestParam BigDecimal minRate) {
+        try {
+            List<SavingsAccountDto> accounts = accountService.findSavingsAccountsByInterestRateGreaterThan(minRate);
+            return ApiResponse.success(accounts, 
+                    "Finder gt() na SavingsAccount (JOINED child): Found " + accounts.size() + " savings accounts with interest rate > " + minRate);
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find savings accounts: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/bank/by-card-type")
+    @Operation(summary = "Wyszukaj konta bankowe po typie karty",
+               description = "Demonstruje Finder eq() na klasie pochodnej BankAccount - wyszukiwanie po polu specyficznym (cardType)")
+    public ApiResponse<List<BankAccountDto>> findBankAccountsByCardType(@RequestParam String cardType) {
+        try {
+            List<BankAccountDto> accounts = accountService.findBankAccountsByCardType(cardType);
+            return ApiResponse.success(accounts, 
+                    "Finder eq() na BankAccount (JOINED child): Found " + accounts.size() + " bank accounts with card type '" + cardType + "'");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find bank accounts: " + e.getMessage(), 500);
         }
     }
 }

@@ -9,6 +9,8 @@ import pl.edu.agh.dp.entity.Department;
 import pl.edu.agh.dp.entity.Document;
 import pl.edu.agh.dp.entity.Employee;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -335,6 +337,95 @@ public class EmployeeService {
                             doc.getId(),
                             doc.getTitle(),
                             doc.getClass().getSimpleName()))
+                    .collect(Collectors.toList());
+        }
+    }
+
+    // ==================== FINDER API DEMONSTRATION ====================
+
+    /**
+     * Wyszukuje pracowników po stanowisku (position).
+     * Demonstruje Finder z warunkiem eq() - dokładne dopasowanie.
+     */
+    public List<EmployeeDto> findByPosition(String position) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Employee> employees = session.finder(Employee.class)
+                    .eq("position", position)
+                    .list();
+            
+            return employees.stream()
+                    .map(EmployeeDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje pracowników z pensją większą niż podana wartość.
+     * Demonstruje Finder z warunkiem gt() oraz sortowaniem orderDesc().
+     */
+    public List<EmployeeDto> findBySalaryGreaterThan(BigDecimal minSalary) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Employee> employees = session.finder(Employee.class)
+                    .gt("salary", minSalary)
+                    .orderDesc("salary")
+                    .list();
+            
+            return employees.stream()
+                    .map(EmployeeDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje pracowników po fragmencie nazwiska (LIKE).
+     * Demonstruje Finder z warunkiem like() - wyszukiwanie wzorcowe.
+     */
+    public List<EmployeeDto> findByLastNameLike(String pattern) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Employee> employees = session.finder(Employee.class)
+                    .like("lastName", "%" + pattern + "%")
+                    .orderAsc("lastName")
+                    .list();
+            
+            return employees.stream()
+                    .map(EmployeeDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje pracowników z pensją w podanym zakresie.
+     * Demonstruje Finder z warunkiem between() oraz paginacją (limit, offset).
+     */
+    public List<EmployeeDto> findBySalaryBetween(BigDecimal minSalary, BigDecimal maxSalary, int limit, int offset) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Employee> employees = session.finder(Employee.class)
+                    .between("salary", minSalary, maxSalary)
+                    .orderAsc("salary")
+                    .limit(limit)
+                    .offset(offset)
+                    .list();
+            
+            return employees.stream()
+                    .map(EmployeeDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje pracowników zatrudnionych po danej dacie na określonym stanowisku.
+     * Demonstruje Finder z wieloma warunkami (eq + gt) - złożone zapytania.
+     */
+    public List<EmployeeDto> findByPositionAndHiredAfter(String position, LocalDate hireDate) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Employee> employees = session.finder(Employee.class)
+                    .eq("position", position)
+                    .gt("hireDate", hireDate)
+                    .orderDesc("hireDate")
+                    .list();
+            
+            return employees.stream()
+                    .map(EmployeeDto::fromEntity)
                     .collect(Collectors.toList());
         }
     }

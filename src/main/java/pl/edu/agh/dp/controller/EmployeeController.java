@@ -2,11 +2,14 @@ package pl.edu.agh.dp.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import pl.edu.agh.dp.dto.ApiResponse;
 import pl.edu.agh.dp.dto.EmployeeDto;
 import pl.edu.agh.dp.service.EmployeeService;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -201,6 +204,79 @@ public class EmployeeController {
             return ApiResponse.success(documents, "Found " + documents.size() + " accessible documents");
         } catch (Exception e) {
             return ApiResponse.error("Failed to fetch accessible documents: " + e.getMessage(), 500);
+        }
+    }
+
+    // ==================== FINDER API ENDPOINTS ====================
+
+    @GetMapping("/finder/by-position")
+    @Operation(summary = "Wyszukaj pracowników po stanowisku",
+               description = "Demonstruje Finder z warunkiem eq() - dokładne dopasowanie pola 'position'")
+    public ApiResponse<List<EmployeeDto>> findByPosition(@RequestParam String position) {
+        try {
+            List<EmployeeDto> employees = employeeService.findByPosition(position);
+            return ApiResponse.success(employees, "Finder eq(): Found " + employees.size() + " employees with position '" + position + "'");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find employees by position: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/by-salary-greater-than")
+    @Operation(summary = "Wyszukaj pracowników z pensją większą niż podana",
+               description = "Demonstruje Finder z warunkami gt() i orderDesc() - wyszukiwanie z sortowaniem malejącym")
+    public ApiResponse<List<EmployeeDto>> findBySalaryGreaterThan(@RequestParam BigDecimal minSalary) {
+        try {
+            List<EmployeeDto> employees = employeeService.findBySalaryGreaterThan(minSalary);
+            return ApiResponse.success(employees, "Finder gt() + orderDesc(): Found " + employees.size() + " employees with salary > " + minSalary);
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find employees by salary: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/by-lastname-like")
+    @Operation(summary = "Wyszukaj pracowników po fragmencie nazwiska",
+               description = "Demonstruje Finder z warunkiem like() - wyszukiwanie wzorcowe (pattern matching)")
+    public ApiResponse<List<EmployeeDto>> findByLastNameLike(@RequestParam String pattern) {
+        try {
+            List<EmployeeDto> employees = employeeService.findByLastNameLike(pattern);
+            return ApiResponse.success(employees, "Finder like(): Found " + employees.size() + " employees with lastName containing '" + pattern + "'");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find employees by lastName pattern: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/by-salary-between")
+    @Operation(summary = "Wyszukaj pracowników z pensją w zakresie",
+               description = "Demonstruje Finder z warunkiem between() oraz paginacją (limit, offset)")
+    public ApiResponse<List<EmployeeDto>> findBySalaryBetween(
+            @RequestParam BigDecimal minSalary,
+            @RequestParam BigDecimal maxSalary,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "0") int offset) {
+        try {
+            List<EmployeeDto> employees = employeeService.findBySalaryBetween(minSalary, maxSalary, limit, offset);
+            return ApiResponse.success(employees, 
+                    "Finder between() + limit() + offset(): Found " + employees.size() + 
+                    " employees with salary between " + minSalary + " and " + maxSalary +
+                    " (page: limit=" + limit + ", offset=" + offset + ")");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find employees by salary range: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/by-position-and-hired-after")
+    @Operation(summary = "Wyszukaj pracowników po stanowisku i dacie zatrudnienia",
+               description = "Demonstruje Finder z wieloma warunkami: eq() + gt() - złożone zapytania")
+    public ApiResponse<List<EmployeeDto>> findByPositionAndHiredAfter(
+            @RequestParam String position,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hireDate) {
+        try {
+            List<EmployeeDto> employees = employeeService.findByPositionAndHiredAfter(position, hireDate);
+            return ApiResponse.success(employees, 
+                    "Finder eq() + gt(): Found " + employees.size() + 
+                    " employees with position '" + position + "' hired after " + hireDate);
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find employees by position and hire date: " + e.getMessage(), 500);
         }
     }
 }

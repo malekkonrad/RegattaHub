@@ -10,6 +10,7 @@ import pl.edu.agh.dp.dto.InvoiceDto;
 import pl.edu.agh.dp.dto.ReportDto;
 import pl.edu.agh.dp.service.DocumentService;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -230,6 +231,75 @@ public class DocumentController {
             return ApiResponse.notFound("CV", id);
         } catch (Exception e) {
             return ApiResponse.error("Failed to delete CV: " + e.getMessage(), 500);
+        }
+    }
+
+    // ==================== FINDER API ENDPOINTS (SINGLE_TABLE INHERITANCE) ====================
+
+    @GetMapping("/finder/by-created-by")
+    @Operation(summary = "Wyszukaj dokumenty po autorze",
+               description = "Demonstruje Finder eq() na klasie bazowej SINGLE_TABLE - polimorficzne wyszukiwanie wszystkich typów dokumentów")
+    public ApiResponse<List<DocumentDto>> findDocumentsByCreatedBy(@RequestParam String createdBy) {
+        try {
+            List<DocumentDto> documents = documentService.findDocumentsByCreatedBy(createdBy);
+            return ApiResponse.success(documents, 
+                    "Finder eq() na Document (SINGLE_TABLE): Found " + documents.size() + " documents by '" + createdBy + "'");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find documents: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/by-title-like")
+    @Operation(summary = "Wyszukaj dokumenty po fragmencie tytułu",
+               description = "Demonstruje Finder like() na klasie bazowej - zwraca wszystkie typy (Report, Invoice, Curriculum)")
+    public ApiResponse<List<DocumentDto>> findDocumentsByTitleLike(@RequestParam String titlePattern) {
+        try {
+            List<DocumentDto> documents = documentService.findDocumentsByTitleLike(titlePattern);
+            return ApiResponse.success(documents, 
+                    "Finder like() na Document (SINGLE_TABLE): Found " + documents.size() + " documents with title containing '" + titlePattern + "'");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find documents: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/invoice/by-payment-status")
+    @Operation(summary = "Wyszukaj faktury po statusie płatności",
+               description = "Demonstruje Finder eq() na klasie pochodnej Invoice - wyszukiwanie po polu specyficznym dla klasy dziecka")
+    public ApiResponse<List<InvoiceDto>> findInvoicesByPaymentStatus(@RequestParam String paymentStatus) {
+        try {
+            List<InvoiceDto> invoices = documentService.findInvoicesByPaymentStatus(paymentStatus);
+            return ApiResponse.success(invoices, 
+                    "Finder eq() na Invoice (SINGLE_TABLE child): Found " + invoices.size() + " invoices with status '" + paymentStatus + "'");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find invoices: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/invoice/by-amount-greater-than")
+    @Operation(summary = "Wyszukaj faktury z kwotą większą niż podana",
+               description = "Demonstruje Finder gt() + orderDesc() na klasie pochodnej Invoice")
+    public ApiResponse<List<InvoiceDto>> findInvoicesByAmountGreaterThan(@RequestParam BigDecimal minAmount) {
+        try {
+            List<InvoiceDto> invoices = documentService.findInvoicesByAmountGreaterThan(minAmount);
+            return ApiResponse.success(invoices, 
+                    "Finder gt() na Invoice (SINGLE_TABLE child): Found " + invoices.size() + " invoices with amount > " + minAmount);
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find invoices: " + e.getMessage(), 500);
+        }
+    }
+
+    @GetMapping("/finder/report/by-type-and-status")
+    @Operation(summary = "Wyszukaj raporty po typie i statusie",
+               description = "Demonstruje Finder z wieloma warunkami eq() na klasie pośredniej Report (zwraca też Invoice polimorficznie)")
+    public ApiResponse<List<ReportDto>> findReportsByTypeAndStatus(
+            @RequestParam String reportType,
+            @RequestParam String status) {
+        try {
+            List<ReportDto> reports = documentService.findReportsByTypeAndStatus(reportType, status);
+            return ApiResponse.success(reports, 
+                    "Finder eq()+eq() na Report (SINGLE_TABLE middle): Found " + reports.size() + " reports with type '" + reportType + "' and status '" + status + "'");
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to find reports: " + e.getMessage(), 500);
         }
     }
 }

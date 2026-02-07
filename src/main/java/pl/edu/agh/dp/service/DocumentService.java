@@ -281,4 +281,97 @@ public class DocumentService {
             }
         }
     }
+
+    // ==================== FINDER API DEMONSTRATION (SINGLE_TABLE INHERITANCE) ====================
+
+    /**
+     * Wyszukuje wszystkie dokumenty po autorze (pole z klasy bazowej Document).
+     * Demonstruje Finder na klasie bazowej SINGLE_TABLE - zwraca polimorficznie wszystkie typy.
+     */
+    public List<DocumentDto> findDocumentsByCreatedBy(String createdBy) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Document> documents = session.finder(Document.class)
+                    .eq("createdBy", createdBy)
+                    .orderDesc("createdDate")
+                    .list();
+            
+            return documents.stream()
+                    .map(DocumentDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje faktury po statusie płatności (pole specyficzne dla Invoice).
+     * Demonstruje Finder na klasie pochodnej z warunkiem na polu dziecka.
+     */
+    public List<InvoiceDto> findInvoicesByPaymentStatus(String paymentStatus) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Invoice> invoices = session.finder(Invoice.class)
+                    .eq("paymentStatus", paymentStatus)
+                    .orderDesc("dueDate")
+                    .list();
+            
+            return invoices.stream()
+                    .map(InvoiceDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje faktury z kwotą większą niż podana.
+     * Demonstruje Finder gt() na klasie pochodnej SINGLE_TABLE.
+     */
+    public List<InvoiceDto> findInvoicesByAmountGreaterThan(java.math.BigDecimal minAmount) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Invoice> invoices = session.finder(Invoice.class)
+                    .gt("totalAmount", minAmount)
+                    .orderDesc("totalAmount")
+                    .list();
+            
+            return invoices.stream()
+                    .map(InvoiceDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje raporty po typie i statusie (pola z klasy Report).
+     * Demonstruje Finder z wieloma warunkami na klasie pośredniej w hierarchii.
+     */
+    public List<ReportDto> findReportsByTypeAndStatus(String reportType, String status) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Report> reports = session.finder(Report.class)
+                    .eq("reportType", reportType)
+                    .eq("status", status)
+                    .orderAsc("periodStart")
+                    .list();
+            
+            return reports.stream()
+                    .map(report -> {
+                        if (report instanceof Invoice inv) {
+                            return InvoiceDto.fromEntity(inv);
+                        }
+                        return ReportDto.fromEntity(report);
+                    })
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje dokumenty po tytule (LIKE) - polimorficzne wyszukiwanie.
+     * Demonstruje Finder like() na klasie bazowej zwracający wszystkie typy dokumentów.
+     */
+    public List<DocumentDto> findDocumentsByTitleLike(String titlePattern) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Document> documents = session.finder(Document.class)
+                    .like("title", "%" + titlePattern + "%")
+                    .orderAsc("title")
+                    .list();
+            
+            return documents.stream()
+                    .map(DocumentDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
 }

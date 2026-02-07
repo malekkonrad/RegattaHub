@@ -266,4 +266,93 @@ public class AccountService {
             }
         }
     }
+
+    // ==================== FINDER API DEMONSTRATION (JOINED INHERITANCE) ====================
+
+    /**
+     * Wyszukuje wszystkie konta po walucie (pole z klasy bazowej Account).
+     * Demonstruje Finder na klasie bazowej JOINED - zwraca polimorficznie wszystkie typy kont.
+     */
+    public List<AccountDto> findAccountsByCurrency(String currency) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Account> accounts = session.finder(Account.class)
+                    .eq("currency", currency)
+                    .orderAsc("accountName")
+                    .list();
+            
+            return accounts.stream()
+                    .map(AccountDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje konta oszczędnościowe z oprocentowaniem większym niż podane.
+     * Demonstruje Finder gt() na klasie pochodnej z polem specyficznym (interestRate).
+     */
+    public List<SavingsAccountDto> findSavingsAccountsByInterestRateGreaterThan(java.math.BigDecimal minRate) {
+        try (Session session = sessionFactory.openSession()) {
+            List<SavingsAccount> accounts = session.finder(SavingsAccount.class)
+                    .gt("interestRate", minRate)
+                    .orderDesc("interestRate")
+                    .list();
+            
+            return accounts.stream()
+                    .map(SavingsAccountDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje konta z saldem w podanym zakresie.
+     * Demonstruje Finder between() na polu z klasy bazowej Account.
+     */
+    public List<AccountDto> findAccountsByBalanceBetween(java.math.BigDecimal minBalance, java.math.BigDecimal maxBalance) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Account> accounts = session.finder(Account.class)
+                    .between("balance", minBalance, maxBalance)
+                    .orderAsc("balance")
+                    .list();
+            
+            return accounts.stream()
+                    .map(AccountDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje aktywne konta po walucie i minimalnym saldzie.
+     * Demonstruje Finder z wieloma warunkami (eq + gt + eq) na hierarchii JOINED.
+     */
+    public List<AccountDto> findActiveAccountsByCurrencyAndMinBalance(String currency, java.math.BigDecimal minBalance) {
+        try (Session session = sessionFactory.openSession()) {
+            List<Account> accounts = session.finder(Account.class)
+                    .eq("currency", currency)
+                    .gt("balance", minBalance)
+                    .eq("isActive", true)
+                    .orderDesc("balance")
+                    .list();
+            
+            return accounts.stream()
+                    .map(AccountDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Wyszukuje konta bankowe po typie karty.
+     * Demonstruje Finder eq() na polu specyficznym klasy pochodnej BankAccount.
+     */
+    public List<BankAccountDto> findBankAccountsByCardType(String cardType) {
+        try (Session session = sessionFactory.openSession()) {
+            List<BankAccount> accounts = session.finder(BankAccount.class)
+                    .eq("cardType", cardType)
+                    .orderAsc("accountName")
+                    .list();
+            
+            return accounts.stream()
+                    .map(BankAccountDto::fromEntity)
+                    .collect(Collectors.toList());
+        }
+    }
 }
