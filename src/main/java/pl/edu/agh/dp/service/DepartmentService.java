@@ -1,8 +1,8 @@
 package pl.edu.agh.dp.service;
 
 import org.springframework.stereotype.Service;
-import pl.edu.agh.dp.api.Session;
-import pl.edu.agh.dp.api.SessionFactory;
+import pl.edu.agh.dp.core.api.Session;
+import pl.edu.agh.dp.core.api.SessionFactory;
 import pl.edu.agh.dp.config.OrmConfig;
 import pl.edu.agh.dp.dto.DepartmentDto;
 import pl.edu.agh.dp.entity.Department;

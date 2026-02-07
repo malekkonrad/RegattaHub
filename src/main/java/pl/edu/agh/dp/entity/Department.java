@@ -3,8 +3,7 @@ package pl.edu.agh.dp.entity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import pl.edu.agh.dp.api.annotations.*;
-import pl.edu.agh.dp.core.mapping.InheritanceType;
+import pl.edu.agh.dp.core.mapping.annotations.*;
 
 import java.util.ArrayList;
 import java.util.List;

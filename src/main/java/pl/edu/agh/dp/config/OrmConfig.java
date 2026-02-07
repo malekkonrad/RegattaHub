@@ -1,8 +1,8 @@
 package pl.edu.agh.dp.config;
 
-import pl.edu.agh.dp.api.Configuration;
-import pl.edu.agh.dp.api.Orm;
-import pl.edu.agh.dp.api.SessionFactory;
+import pl.edu.agh.dp.core.api.Configuration;
+import pl.edu.agh.dp.core.api.Orm;
+import pl.edu.agh.dp.core.api.SessionFactory;
 import pl.edu.agh.dp.entity.*;
 
 /**
